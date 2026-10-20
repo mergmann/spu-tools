@@ -1,2 +1,5 @@
 /.direnv
-/data
+**/__pycache__
+/demo
+/programs/out
+/typings

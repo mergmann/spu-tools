@@ -7,6 +7,15 @@ from comm.spu import SPUDriver, q23_encode
 from comm.usbclient import USBClient
 
 
+if '--stop' in sys.argv:
+    with USBClient.connect() as client:
+        client.stop()
+        exit(0)
+
+if len(sys.argv) < 3: 
+    print(f'{sys.argv[0]} <rend.bin> <points.csv>')
+    exit(2)
+
 # The DSP can only handle values in -1..1
 SCALE = 0.125
 
@@ -25,12 +34,12 @@ MATRIX = [
 RECIP = [128 / (i + 0.5) for i in range(1024)]
 
 # PRAM
-with open('programs/rend50.bin', 'rb') as f:
+with open(sys.argv[1], 'rb') as f:
     program = f.read()
 
 # Load model points
 model = []
-with open('data/points.csv', 'rt') as f:
+with open(sys.argv[2], 'rt') as f:
     f.readline()
     while line := f.readline():
         x, y, z = map(lambda x: float(x) * SCALE, line.split(','))
