@@ -126,8 +126,8 @@ def lea(m: Match, dst: Register | None, src: Register | None, off: int | None) -
     if dsti is not None and srci is not None and offi is not None:
         return Inst(0x3A800000 | (dsti << 19) | (srci << 16) | offi)
 
-@bld.export('LDAI {register} , #{i}')
-def ldai(m: Match, dst: Register | None, imm: int | None) -> Inst | None:
+@bld.export('LDAL {register} , #{i}')
+def ldal(m: Match, dst: Register | None, imm: int | None) -> Inst | None:
     dsti = get_reg(m, dst, Banks.A, 0)
     immi = get_signed(m, imm, 20, 1)
     if dsti is not None and immi is not None:

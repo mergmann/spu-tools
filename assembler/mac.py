@@ -15,7 +15,7 @@ bld.import_all(REGISTERS)
 bld.import_all(OPTMOVE)
 
 
-# Products are 2 * x * y of r0..r3 into a0..a3, MPY: aD := +-P, MAC: aD += +-P
+# Products are 2 * x * y of r0..r3 into a0..a3, MUL: aD := +-P, MAC: aD += +-P
 @dataclass
 class Product:
     dst: int
@@ -39,10 +39,10 @@ def get_factors(m: Match, p: Product, fits: Callable[[int, int], bool], what: st
     m.add_error(hole, f'Factors must be {what}')
 
 
-@bld.pattern('MPY', 'MAC')
+@bld.pattern('MUL', 'MAC')
 def mulop(m: Match) -> bool:
     match m.compact:
-        case 'MPY': return True
+        case 'MUL': return True
         case 'MAC': return False
         case _: raise AssertionError('Unexpected pattern')
 
