@@ -14,6 +14,7 @@ if '--stop' in sys.argv:
 
 if len(sys.argv) < 3: 
     print(f'{sys.argv[0]} <rend.bin> <points.csv>')
+    print(f'{sys.argv[0]} --stop')
     exit(2)
 
 # The DSP can only handle values in -1..1
