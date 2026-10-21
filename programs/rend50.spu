@@ -1,3 +1,4 @@
+# Interrupt table, 8 entries
 vector:
     JMP start
     RTI
@@ -10,6 +11,8 @@ vector:
 
 start:
     # Warmup code
+    # Comes from an empirical measurement,
+    # The first cycles seem to read garbage
     LD r0, X[$0000]
     LD r0, X[$0000]
     LD r0, X[$0000]
@@ -24,25 +27,35 @@ start:
     # Pointer to matrix
     LDI b0, $0400
 
-    # Reload b every 12 uses, inc 1
+    # Reload b0 every 12 uses, inc 1
+    # This automatically resets the
+    # matrix pointer every 12 elemnts,
+    # so we don't have to do it :D
     LDI bo0, #1
     LDI bm0, #0x400C
 
+    # The hardware loop stack can't fit
+    # the full vertex count, so we have
+    # to use nested loops
     LD r0, X[$0000]
     DO r0, outer
-    # yummy delay slots
+    # 2 delay slots
     NOP
     NOP
+    # DO start repeating after here
     
     LDI r0, #1024
     DO r0, inner
     NOP
     NOP
+    # DO start repeating after here
 
-    # vertex3 * matrix34 (14 cycles)
-    # a0: x
-    # a1: y
-    # a2: z
+    # Vector-Matrix multiplication
+    # The matrix is stored at Y[b0]
+    # And the point array at X[p0]
+    # The parallel ops allow loading
+    # the next entry while multiplying.
+    # a0, a1, a2 are x', y', z'
     NOP            || ld r3, Y[b0+OM] | ld r0, X[p0+]
     MUL a0, r0, r3 || ld r2, Y[b0+OM]
     MUL a1, r0, r2 || ld r3, Y[b0+OM] | ld r1, X[p0+]
@@ -54,20 +67,25 @@ start:
     MAC a1, r0, r2 || ld r3, Y[b0+OM]
     MAC a2, r0, r3 || ld r2, Y[b0+OM]
     NOP            || ld r3, Y[b0+OM]
+    # The last 3 entries are translation
     ADD a0, a0, r2 || ld r2, Y[b0+OM]
     ADD a1, a1, r3
     ADD r2, a2, r2
 
-    # recip table length
+    # An initial guess for the divison,
+    # this is loaded from the table
     LDI r0, #0x400
-
-    # load guess from recip table
     MUL a3, r2, r0
     NOP
     NOP || mv b1, a3.hi
     NOP || ld r3, Y[b1]
 
-    # Newton's method
+    # Then use newtons method to get
+    # a better approximation. The /8
+    # factor is because dividing by
+    # something less than one means
+    # we get something bigger than
+    # one... Which Q23 can't store
     # Q = 1 / (8z)
     NOP || mv a3, r3
     # a2 = zQ
@@ -87,16 +105,20 @@ start:
     NOP             || mv r0, a0
     NOP             || mv r1, a1
 
-    # to screen coords
+    # Now convert Q23 to integer
+    # screen coordinates
     LDI r2, #900
     MUL a0,  r0, r2
     MUL a1, -r1, r2
+    # Center x (=396/2)
     LDI r3, #198
     ADD a0, a0, r3
+    # Center y (=224/2)
     LDI r3, #112
     ADD a1, a1, r3
 
-    # clamp
+    # Clamp to the screen edges
+    # MIN/MAX are your friend
     LDI r3, #395
     MIN a0, a0, r3
     LDI r3, #191
@@ -105,30 +127,44 @@ start:
     MAX a0, a0, r3
     MAX r1, a1, r3
 
-    # calculate addr
+    # Calculate VRAM address
     NOP || mv a0.lo, a0.hi
+    # Multiply y by width
     LDI r3, #198
+    # MAC expects Q23 inputs, so
+    # it always adds a 2* factro
+    # a0 already contains x, so
+    # this is a = x + 2 * 198 * y
     MAC a0, r1, r3
     
+    # Our result is in the lower
+    # (precision fraction) part,
+    # but we want it in .hi.
+    # We add another 2* because
+    # each pixel is 2 bytes
     LDI r3, #25
     SHL.E r2, a0, r3
+    # CG-50 gint VRAM is at
+    # 0x8C0F00A0
     LDI r3, #0xA0
     ADD r2, r2, r3
+    # The lower 16-bit of the address
     ST IO[$FF57], r2
 
     LDI r3, #16
     SHR.E r1, r2, r3
     LDI r3, #0x0C0F
     ADD r3, r1, r3
-
+    # The upper 16-bit of the address
     ST IO[$FF56], r3
     LDI r3, #0x1010
-
-    # draw
+    # The pixel color
     STI IO[$FF59], #0000
 inner:
+    # Trigger a 16-bit bus write
     ST IO[$FF5C], r3
 outer:
     NOP
+    # Our sanity check, a "done" flag read by python
     STI X[$0000], #42
     HALT
