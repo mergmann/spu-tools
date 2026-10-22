@@ -84,10 +84,11 @@ These instructions use the immediate on the middle part of the accumulator (imm 
 
 #### `NORM` instruction
 
-This instruction counts the leading zeros/ones after bit 48 (the sign).  
-The sign bit determines whether leading zeros or ones are counted.  
+This instruction counts the leading zeros/ones - 9.  
+The sign bit (bit 55) determines whether leading zeros or ones are counted.  
 This is presumably used to normalize Q23 numbers.  
 For 48-bit numbers think of it as "how much do I have to shift Y left until bit 47 and 46 differ".  
+It is similar to the PDMSB instruction from SH4DSP
 
 The result is -8..47
 
