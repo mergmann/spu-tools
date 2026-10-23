@@ -9,12 +9,6 @@ vector:
     RTI
 
 start:
-    # Warmup code
-    LD r0, X[$0000]
-    LD r0, X[$0000]
-    LD r0, X[$0000]
-    LD r0, X[$0000]
-
     # Saturate, round up
     LDI fl, #0x0801
 
