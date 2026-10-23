@@ -27,6 +27,7 @@ I want to make the name "bointer" for the Y/IO (b0..b3) pointers official
 | 1  1  1  1  1  1|--| 1| --- | 1  1  0| btr | SUB-BTR
 | 1  1  1  1  1  1|--| 1| --- | 1  1  1| --- | NOP
 |--------------------------------------------|
+|14 13 12 11 10  9  8  7  6  5  4  3  2  1  0|
 ```
 
 
