@@ -290,7 +290,7 @@ def mve(m: Match, dst: Register | None, src: Register | None) -> int | None:
     if dsti is not None and srci is not None:
         return 0x7E80 | (dsti << 2) | srci
 
-@bld.export('sub {register} , N')
+@bld.export('sub {register} , O')
 def sub(m: Match, reg: Register | None) -> int | None:
     dstp = get_reg(m, reg, Banks.P, 0, err=False)
     if dstp is not None:
