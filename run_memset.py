@@ -1,4 +1,3 @@
-import math
 import sys
 import time
 
@@ -33,10 +32,6 @@ def dsp_memset(dsp: DSPCore, addr: int, value: int, count: int):
     screen.push()
 
 with USBClient.connect() as client:
-    if '--stop' in sys.argv:
-        client.stop()
-        exit()
-
     client.debug = True
     client.set_status('Starting')
 

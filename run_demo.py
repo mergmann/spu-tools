@@ -52,10 +52,6 @@ model += model[-3:] * (-n % 1024)
 n2 = len(model) // 3 // 1024
 
 with USBClient.connect() as client:
-    if '--stop' in sys.argv:
-        client.stop()
-        exit()
-
     client.debug = True
     client.set_status('Starting')
 
