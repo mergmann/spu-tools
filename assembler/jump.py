@@ -1,25 +1,12 @@
 from builder import Builder
 from line import Inst, Match
 from register import REGISTERS, Banks, Register, get_reg
-from util import get_range, get_unsigned
+from util import get_range, get_unsigned, UTILS
 
 
 bld = Builder()
 bld.import_all(REGISTERS)
-
-def get_reg8(m: Match, reg: Register | None, hole: int | None) -> int | None:
-    if reg is None: return None
-    off = 0
-    for bank in [Banks.A, Banks.R]:
-        if reg in bank:
-            return reg.idx - bank + off
-        off += bank.num
-    m.add_error(hole, f'Register {reg} is not supported')
-
-
-@bld.pattern('${hu}', '{n}')
-def addr(m: Match, val: int | str | None) -> int | str | None:
-    return val
+bld.import_all(UTILS)
 
 
 @bld.regex(r'(?i:NV|AL|EQ|NE|LT|GE|LE|GT)')
@@ -72,14 +59,6 @@ def rep(m: Match, count: int | None, end: int | str | None) -> Inst | None:
     if counti is not None and endi is not None:
         ref = end if isinstance(end, str) else None
         return Inst(0x20000000 | ((counti & 4095) << 16) | endi, ref)
-
-@bld.export('DO {register} , {addr}')
-def do(m: Match, reg: Register | None, end: int | str | None) -> Inst | None:
-    regi = get_reg8(m, reg, 0)
-    endi = 0xDEAD if isinstance(end, str) else get_unsigned(m, end, 16, 1)
-    if regi is not None and endi is not None:
-        ref = end if isinstance(end, str) else None
-        return Inst(0x3CC00000 | (regi << 16) | endi, ref)
 
 
 @bld.export('JMPI.D {register}')

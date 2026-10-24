@@ -1,5 +1,8 @@
+from builder import Builder
 from line import Match
 
+
+bld = Builder()
 
 def get_range(m: Match, i: int | None, min: int, max: int, hole: int) -> int | None:
     if i is None: return
@@ -21,3 +24,10 @@ def get_unsigned(m: Match, i: int | None, bits: int, hole: int) -> int | None:
         m.add_error(hole, f'Value must be {bits} bits unsigned')
         return
     return i & ((1 << bits) - 1)
+
+
+@bld.export('${hu}', '{n}')
+def addr(m: Match, val: int | str | None) -> int | str | None:
+    return val
+
+UTILS = bld
