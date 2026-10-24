@@ -1,4 +1,5 @@
 import time
+import typing
 
 from .usbclient import USBClient
 
@@ -25,9 +26,12 @@ PRAM = [0xFE200000, 0xFE300000]
 XRAM = [0xFE240000, 0xFE340000]
 YRAM = [0xFE280000, 0xFE380000]
 
+XRAM_SIZE = [0x40000, 0x40000]
+YRAM_SIZE = [0x40000, 0x40000]
+
 BITS_32 = (1 << 32) - 1
 
-def words_to_bytes(words: list[int]) -> bytes:
+def words_to_bytes(words: typing.Iterable[int]) -> bytes:
     buf = bytearray()
     for word in words:
         buf.extend((word << 8).to_bytes(4, 'big'))
@@ -99,7 +103,17 @@ class SPUDriver:
 
 class DSPCore:
     @property
-    def com(self) -> Comm: return Comm(self.client, COM[self.index])
+    def com(self) -> Comm:
+        return Comm(self.client, COM[self.index])
+
+    @property
+    def xram(self) -> Ram24:
+        return Ram24(self.client, XRAM[self.index], XRAM_SIZE[self.index])
+
+    @property
+    def yram(self) -> Ram24:
+        return Ram24(self.client, YRAM[self.index], YRAM_SIZE[self.index])
+
 
     def __init__(self, client: USBClient, index: int) -> None:
         self.client = client
@@ -114,20 +128,8 @@ class DSPCore:
     def write_pram(self, addr: int, data: bytes) -> None:
         self.client.write(PRAM[self.index] + addr, data)
 
-    def write_xram(self, off: int, data: list[int]) -> None:
-        self.client.write(XRAM[self.index] + off * 4, words_to_bytes(data))
-
-    def write_yram(self, off: int, data: list[int]) -> None:
-        self.client.write(YRAM[self.index] + off * 4, words_to_bytes(data))
-
     def read_pram(self, addr: int, size: int) -> bytes:
         return self.client.read(PRAM[self.index] + addr, size)
-
-    def read_xram(self, off: int, count: int) -> list[int]:
-        return bytes_to_words(self.client.read(XRAM[self.index] + off * 4, count * 4))
-
-    def read_yram(self, off: int, count: int) -> list[int]:
-        return bytes_to_words(self.client.read(YRAM[self.index] + off * 4, count * 4))
 
 class Comm:
     def __init__(self, client: USBClient, base: int) -> None:
@@ -141,3 +143,63 @@ class Comm:
     def __setitem__(self, key: int, value: int):
         if key not in range(8): raise ValueError('key must be 0..7')
         self.client.put(self.base + key * 4, value & 0xFFFFFF)
+
+class Ram24:
+    def __init__(self, client: USBClient, base: int, count: int) -> None:
+        self.client = client
+        self.base = base
+        self.count = count
+
+    def read_raw(self, pos: int, count: int) -> bytes:
+        return self.client.read(self.base + pos * 4, count * 4)
+
+    def read(self, pos: int, count: int) -> list[int]:
+        return bytes_to_words(self.read_raw(pos, count))
+
+    def write_raw(self, pos: int, data: bytes) -> None:
+        self.client.write(self.base + pos * 4, data)
+
+    def write(self, pos: int, data: typing.Iterable[int]) -> None:
+        self.write_raw(pos, words_to_bytes(data))
+
+    def __len__(self) -> int: return self.count
+
+    @typing.overload
+    def __getitem__(self, key: int) -> int: ...
+    @typing.overload
+    def __getitem__(self, key: slice) -> list[int]: ...
+    def __getitem__(self, key: int | slice) -> int | list[int]:
+        match key:
+            case int():
+                if key < 0 or key >= self.count:
+                    raise IndexError(f'key={key} is out of range for size {self.count}')
+                return self.client.get(self.base + key * 4) >> 8
+            case slice():
+                r = range(*key.indices(self.count))
+                if r.step == 1:
+                    return self.read(r.start, r.stop - r.start)
+                if r.step == -1:
+                    data = self.read(r.start, r.stop - r.start)
+                    data.reverse()
+                    return data
+                return [self.client.get(self.base + p * 4) >> 8 for p in r]
+
+    @typing.overload
+    def __setitem__(self, key: int, value: int) -> None: ...
+    @typing.overload
+    def __setitem__(self, key: slice, value: typing.Sequence) -> None: ...
+    def __setitem__(self, key: int | slice, value: int | typing.Sequence) -> None:
+        match key:
+            case int():
+                assert isinstance(value, int)
+                self.client.put(self.base + key * 4, value << 8)
+            case slice():
+                assert isinstance(value, typing.Sequence)
+                r = range(*key.indices(self.count))
+                if len(value) != len(r):
+                    raise IndexError(f'len={len(value)} is out of range for {len(r)}')
+                if r.step == 1: self.write(r.start, value)
+                if r.step == -1: self.write(r.start, reversed(value))
+                for p, item in zip(r, value):
+                    self.client.put(self.base + p * 4, item << 8)
+

@@ -63,11 +63,11 @@ with USBClient.connect() as client:
 
     client.set_status('Uploading')
     dsp.write_pram(0x0000, program)
-    dsp.write_xram(0x0000, [n2])
-    dsp.write_xram(0x0001, q23_encode(model))
+    dsp.xram[0x0000] = n2
+    dsp.xram.write(0x0001, q23_encode(model))
 
-    dsp.write_yram(0x0000, q23_encode(RECIP))
-    dsp.write_yram(0x0400, q23_encode(MATRIX))
+    dsp.yram.write(0x0000, q23_encode(RECIP))
+    dsp.yram.write(0x0400, q23_encode(MATRIX))
 
     screen.add(DrawClear(Color.WHITE), DrawUpdate())
     screen.push()
@@ -81,4 +81,4 @@ with USBClient.connect() as client:
     screen.add(DrawUpdate())
     screen.push()
 
-    print(dsp.read_xram(0, 1)[0])
+    print(dsp.xram[0])

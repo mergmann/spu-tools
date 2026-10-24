@@ -181,12 +181,18 @@ class USBClient:
         self.stopped = True
 
     def exec_iter(self, code: str) -> Iterator[str]:
+        if self.debug:
+            text = repr(code)
+            print(f'exec  len= {len(code):08x} ' + (text if len(text) < 64 else ''))
         return map(
             lambda s: s.decode('utf-8'),
             self.request(PacketType.EXEC, code.encode('utf-8'))
         )
 
     def exec_all(self, code: str) -> str:
+        if self.debug:
+            text = repr(code)
+            print(f'exec  len= {len(code):08x} ' + (text if len(text) < 64 else ''))
         return self.request_all(PacketType.EXEC, code.encode('utf-8')).decode('utf-8')
 
     def set_status(self, text: str) -> None:
