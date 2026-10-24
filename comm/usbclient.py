@@ -233,8 +233,8 @@ class USBClient:
     def put(self, addr: int, data: int, width: int = 32) -> None:
         self.write(addr, data.to_bytes(width // 8), width)
 
-    def get(self, addr: int, width: int = 32) -> None:
-        int.from_bytes(self.read(addr, width // 8, width))
+    def get(self, addr: int, width: int = 32) -> int:
+        return int.from_bytes(self.read(addr, width // 8, width))
 
 if __name__ == '__main__':
     args = ArgumentParser()

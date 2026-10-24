@@ -1,0 +1,93 @@
+# A 16-bit memset
+# This is the slowest way to do a memset
+# It's just an example for Bus-through
+# The correct way would be using the DMA         
+# COM0 := (addr >> 24)
+# COM1 := (addr >> 8)
+# COM2 := data & 0xFFFF
+# COM3 := size & 0xFFFFFF
+# COM7 :  start memset
+
+vector:
+    JMP start
+    RTI
+    RTI
+    RTI
+    RTI
+    RTI
+    RTI
+    RTI
+
+start:
+
+poll_com7:
+    # Poll COM7
+    LD r2, IO[$FF55]
+    CMPHU r2, #0
+    JEQ poll_com7
+
+    STI IO[$FF55], #2
+
+    # Addr upper  8-bit (COM0 -> a2.hi)
+    LD a2, IO[$FF4E]
+    # Addr lower 24-bit (COM1 -> a2.lo)
+    LD r2, IO[$FF4F]
+    # Writing to a2.lo doesn't overwrite a2.hi
+    NOP || mv a2.lo, r2
+
+    # Data 16-bit       (COM2 -> WDATL)
+    LD r2, IO[$FF50]
+    ST IO[$FF59], r2
+
+    # Size 24-bit       (COM3)
+    LD r2, IO[$FF51]
+    MOV a0, r2
+
+    # Left-shift count
+    LDI r1, #8
+    # Bus-through config
+    # b13:b12 = 01, 16-bit
+    # b4      =  1, write
+    LDI a3, #0x1010
+
+    LDI p0, #0
+
+loop:
+    # a2 is 56-bit, it contains our
+    # address in a.hi:a.lo (8:24)
+    # r2: upper 16-bit
+    # r3: lower 24-bit
+    SHL r2, a2, r1 || mv r3, a2.lo
+    # Changing these before polling for
+    # completion is fine for writes (not reads!)
+    ST IO[$FF56], r2
+    # BTADRL takes the lower 16-bit from r3
+    ST IO[$FF57], r3
+
+    # BTRCTL & 0x10 is cleared when done
+    LDI r0, #0x10
+poll_bt:
+    # Poll for bus-through to complete
+    LD r3, IO[$FF5C]
+    AND r3, r3, r0
+    CMPHU r3, #0
+    JNE poll_bt
+
+    # Start the transfer
+    ST IO[$FF5C], a3
+
+    ADDL a2, a2, #2
+
+    # The hardware loop (DO) is limited to 4096
+    # iterations max, that's why we're using
+    # a conventional JMP loop
+    ADDH a0, a0, #-1
+    CMPHU a0, #0
+    JNE loop
+
+    # Transfer complete
+    JMP.D start
+    # Delay slots
+    # Clear running flag
+    STI IO[$FF55], #0
+    NOP

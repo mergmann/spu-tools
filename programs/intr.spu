@@ -1,0 +1,25 @@
+# Interrupt table, 8 entries
+vector:
+    JMP start
+    RTI
+    RTI
+    JMP intr
+    RTI
+    RTI
+    RTI
+    RTI
+
+start:
+    # Set the interrupt mask to 0xFEFFFF
+    # We only want to unmask the host->DSP interrupt
+    LDI r2, #-0x10001
+    ST IO[$FF49], r2
+
+    # Ack all stale interrupts
+    STI IO[$FF4C], #0
+
+    # Enable interrupts
+    FSET IE
+
+intr:
+    ST IO[$FF4C], #-0x10001

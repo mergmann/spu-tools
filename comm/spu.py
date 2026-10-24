@@ -14,8 +14,12 @@ PBANKC1 = 0xFE2FFC04
 XBANKC0 = 0xFE2FFC10
 XBANKC1 = 0xFE2FFC14
 
+GCOM = 0xFE2FFC40
+
 DSPRST =     [0xFE2FFD00, 0xFE3FFD00]
 DSPCORERST = [0xFE2FFD04, 0xFE3FFD04]
+
+COM = [0xFE2FFD38, 0xFE3FFD38]
 
 PRAM = [0xFE200000, 0xFE300000]
 XRAM = [0xFE240000, 0xFE340000]
@@ -52,6 +56,9 @@ def q23_decode(vals: list[int]) -> list[float]:
     ]
 
 class SPUDriver:
+    @property
+    def gcom(self) -> Comm: return Comm(self.client, GCOM)
+
     def __init__(self, client: USBClient) -> None:
         self.client = client
         self.dsp0 = DSPCore(client, 0)
@@ -91,6 +98,9 @@ class SPUDriver:
         self.dsp1.reset(False)
 
 class DSPCore:
+    @property
+    def com(self) -> Comm: return Comm(self.client, COM[self.index])
+
     def __init__(self, client: USBClient, index: int) -> None:
         self.client = client
         self.index = index
@@ -119,3 +129,15 @@ class DSPCore:
     def read_yram(self, off: int, count: int) -> list[int]:
         return bytes_to_words(self.client.read(YRAM[self.index] + off * 4, count * 4))
 
+class Comm:
+    def __init__(self, client: USBClient, base: int) -> None:
+        self.client = client
+        self.base = base
+
+    def __getitem__(self, key: int) -> int:
+        if key not in range(8): raise ValueError('key must be 0..7')
+        return self.client.get(self.base + key * 4)
+
+    def __setitem__(self, key: int, value: int):
+        if key not in range(8): raise ValueError('key must be 0..7')
+        self.client.put(self.base + key * 4, value & 0xFFFFFF)

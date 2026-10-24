@@ -32,6 +32,9 @@ class Color(Encode):
             (b >> 3) & 0x001F
         )
 
+    def __int__(self):
+        return int(self.value)
+
     def __init__(self, value: int | str = 'WHITE') -> None:
         self.value = value
 
@@ -153,6 +156,18 @@ class RemoteScreen:
     def __init__(self, client: USBClient) -> None:
         self.client = client
         self.calls = list[DrawCall]()
+
+    def get_width(self) -> int:
+        return int(self.client.exec_all('print(gint.DWIDTH)').strip())
+
+    def get_height(self) -> int:
+        return int(self.client.exec_all('print(gint.DHEIGHT)').strip())
+
+    def get_vram(self) -> int:
+        match self.get_width():
+            case 320: return 0x8C000000 # CP-400
+            case 396: return 0x8C0F00A0 # CG-50
+        raise ValueError('Unsupported model')
 
     def add(self, *calls: DrawCall) -> None:
         self.calls.extend(calls)
