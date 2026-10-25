@@ -35,16 +35,16 @@ BTADRU = addr >> 16
 BTADRL = addr & 0xFFFF
 
 # Write a 32bit value
-BTCTRL = 0x0010
 WDATU = data >> 16
 WDATL = data & 0xFFFF
+BTCTRL = 0x0010
 # ... Do things asynchronously ...
 # Poll completion
 while BTCTRL & 0x10: pass
 
 # Write an 8bit value
-BTCTRL = 0x2010
 WDATL = data
+BTCTRL = 0x2010
 # ... Do things asynchronously ...
 while BTCTRL & 0x10: pass
 
