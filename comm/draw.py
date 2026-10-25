@@ -28,7 +28,7 @@ class Color(Encode):
     def rgb(cls, r: int, g: int, b: int) -> 'Color':
         return cls(
             (r << 8) & 0xF800 |
-            (g << 3) & 0x07C0 |
+            (g << 3) & 0x07E0 |
             (b >> 3) & 0x001F
         )
 
