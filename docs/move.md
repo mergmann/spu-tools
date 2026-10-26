@@ -30,22 +30,53 @@ I want to make the name "bointer" for the Y/IO (b0..b3) pointers official
 |14 13 12 11 10  9  8  7  6  5  4  3  2  1  0|
 ```
 
+## The X and Y halves:
+```
+| 6  5  4  3  2  1  0|
+|--------------------|
+| 0|reg2 | ptr |upd2 | LOAD
+| 1| 0|r1| ptr |upd2 | STORE
+| 1| 1|reg2 |imm2 | 0| IMM
+| 1| 1| tbl |ds|sc| 1| REGMOVE
+```
 
 ## Legend
+
+| reg1   | 0  | 1  |
+|--------|----|----|
+| X-half | a0 | a1 |
+| Y-half | a2 | a3 |
+
+| reg2   | 0  | 1  | 2  | 3  |
+|--------|----|----|----|----|
+| X-half | a0 | a1 | r0 | r1 |
+| Y-half | a2 | a3 | r2 | r3 |
 
 | reg5     | 0..3   | 4..7   | 8..15  | 16..19       | 20..23       | 24..27 | 28..31       |
 |----------|--------|--------|--------|--------------|--------------|--------|--------------|
 | register | a0..a3 | r0..r3 | p0..p7 | a0.hi..a3.hi | a0.lo..a3.lo | b0..b3 | a0.ex..a3.ex |
 
----
+`REGMOVE` moves `dst := src`  
+`ds` selects the option from the destination pair, `sc` the option from source pair:
 
-| upd3   | 000  | 001 | 010 | 011 | 100 | 101 | 110 | 111  |
-|--------|------|-----|-----|-----|-----|-----|-----|------|
-| effect | none | +=1 | -=1 | +=2 | -=2 | +=O | -=O | mode |
+| tbl | X-half dst | X-half src | Y-half dst | Y-half src |
+|-----|------------|------------|------------|------------|
+| 00  | r0, r1     | a0, a1     | r2, r3     | a2, a3     |
+| 01  | a0, a1     | r0, r1     | a2, a3     | r2, r3     |
+| 10  | r2, r3     | a0, a1     | r0, r1     | a2, a3     |
+| 11  | a2, a3     | r0, r1     | a0, a1     | r2, r3     |
 
 The update field changes how the pointer gets update after access.  
 O means the corresponding offset register,
 mode means the behaviour depends on the mode register.
+
+| upd2   | 000  | 001 | 010 | 011       |
+|--------|------|-----|-----|-----------|
+| effect | none | +=1 | -=O | +=O, mode |
+
+| upd3   | 000  | 001 | 010 | 011 | 100 | 101 | 110 | 111       |
+|--------|------|-----|-----|-----|-----|-----|-----|-----------|
+| effect | none | +=1 | -=1 | +=2 | -=2 | +=O | -=O | +=O, mode |
 
 - `acc`: a0..a3
 - `ptr`: p0..p7
