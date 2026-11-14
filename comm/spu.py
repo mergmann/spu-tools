@@ -162,6 +162,9 @@ class Ram24:
     def write(self, pos: int, data: typing.Iterable[int]) -> None:
         self.write_raw(pos, words_to_bytes(data))
 
+    def fill(self, pos: int, data: int, count: int):
+        self.write(pos, [data] * count)
+
     def __len__(self) -> int: return self.count
 
     @typing.overload
