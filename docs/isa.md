@@ -92,7 +92,7 @@ I don't know what's the use case over 2 seperate `NOP || <move>`, I guess instru
 Apart from being only one instruction it behaves the same as those.
 
 
-### Arimthetic and logic ops
+### Arithmetic and logic ops
 see [ALU](alu.md)
 
 ### Multiply and accumulate
