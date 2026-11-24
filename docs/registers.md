@@ -21,8 +21,8 @@ Signed registers sign-extend when loaded
 | x49      | li           | 16u  | Interrupt return PC
 | x50      | fl           | 16u  | status / flags
 | x51      | fi           | 16u  | Interrupt return status / flags
-| x52..x55 | a0.lo..a3.lo | 8s   | Lower 24 bits of a0..a3
-| x56..x59 | a0.hi..a3.hi | 8s   | Middle 24 (data) bits of a0..a3
+| x52..x55 | a0.lo..a3.lo | 24s  | Lower 24 bits of a0..a3
+| x56..x59 | a0.hi..a3.hi | 24s  | Middle 24 (data) bits of a0..a3
 | x60..x63 | a0.ex..a3.ex | 8s   | Upper 8 (guard) bits of a0..a3
 
 
@@ -52,9 +52,20 @@ The 4 24-bit data registers can be used for ALU operations and as multiply input
 | 4    | N    | Negative/sign
 | 5    | Z    | Zero
 | 6    | V    | oVerflow
-| 
+| 11   | S    | Saturation
+
+### Round/Clamp
+
+These modes affect the behaviour of reading from an accumulator.  
+Only 24-bit operations like `LD`, `ST`, `mv`, ... are affected.
 
 | Value | Effect
 |-------|-------
-| 00    | Truncate
-| 01    | 
+| 00    | To -inf (drop a.lo)
+| 01    | Nearest, tie up
+| 10    | To 0
+| 11    | Nearest, tie away from zero
+
+If fl.S is is set, the 32-bit value is then clamped to a 24-bit value.
+- values < `-0x800000` become `-0x800000`
+- values > `0x7FFFFF` become `0x7FFFFF`
