@@ -12,7 +12,7 @@ gc.threshold(128 * 1024)
 
 CHUNK_SIZE = const(1024)
 START_TOUT = const(250)
-VERSION = 0x00000005
+VERSION = 0x00000006
 
 class ErrCode:
     OTHER          = 0xF0000000
@@ -30,6 +30,8 @@ class PacketType:
     STOP     = 0x00001002
     EXEC     = 0x00001003
     STATUS   = 0x00001004
+    GEXEC    = 0x00001005
+    GCLEAR   = 0x00001006
     WRITE_8  = 0x00002001
     WRITE_16 = 0x00002002
     WRITE_32 = 0x00002003
@@ -169,6 +171,30 @@ def exec_(usb: USBAccess):
     else:
         stream.close_ok()
 
+glbls = {}
+def gexec(usb: USBAccess):
+    code = usb.read_exact(usb.left).decode('utf-8')
+
+    stream = usb.out_stream()
+    def _print(*args, sep=' ', end='\n', file=None):
+        line = sep.join(str(a) for a in args) + end
+        stream.write(line.encode('utf-8'))
+        if '\n' in line:
+            stream.flush()
+
+    glbls['print'] = _print
+    try:
+        exec(code, glbls)
+    except Exception as e:
+        stream.close_err(ErrCode.OTHER, f'{type(e).__name__}: {e}')
+    else:
+        stream.close_ok()
+
+def gclear(usb: USBAccess):
+    glbls.clear()
+    usb.set_ok(0)
+    usb.flush()
+
 def status(usb: USBAccess):
     text = usb.read_exact(usb.left).decode('utf-8')
     gint.dclear(gint.C_WHITE)
@@ -233,6 +259,8 @@ PACKET_TYPE = {
     PacketType.STOP:     (stop,     'stop'),
     PacketType.EXEC:     (exec_,    'exec'),
     PacketType.STATUS:   (status,   'status'),
+    PacketType.GEXEC:    (gexec,    'gexec'),
+    PacketType.GCLEAR:   (gclear,   'gclear'),
     PacketType.WRITE_8:  (write_8,  'write_8'),
     PacketType.WRITE_16: (write_16, 'write_16'),
     PacketType.WRITE_32: (write_32, 'write_32'),

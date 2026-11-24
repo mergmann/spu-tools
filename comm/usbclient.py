@@ -30,6 +30,8 @@ class PacketType(Enum):
     STOP     = 0x00001002
     EXEC     = 0x00001003
     STATUS   = 0x00001004
+    GEXEC    = 0x00001005
+    GCLEAR   = 0x00001006
     WRITE_8  = 0x00002001
     WRITE_16 = 0x00002002
     WRITE_32 = 0x00002003
@@ -180,20 +182,25 @@ class USBClient:
         self.request_all(PacketType.STOP, b'')
         self.stopped = True
 
-    def exec_iter(self, code: str) -> Iterator[str]:
+    def exec_iter(self, code: str, keep_globals: bool = True) -> Iterator[str]:
+        pty = PacketType.GEXEC if keep_globals else PacketType.EXEC
         if self.debug:
             text = repr(code)
             print(f'exec  len= {len(code):08x} ' + (text if len(text) < 64 else ''))
         return map(
             lambda s: s.decode('utf-8'),
-            self.request(PacketType.EXEC, code.encode('utf-8'))
+            self.request(pty, code.encode('utf-8'))
         )
 
-    def exec_all(self, code: str) -> str:
+    def exec_all(self, code: str, keep_globals: bool = True) -> str:
+        pty = PacketType.GEXEC if keep_globals else PacketType.EXEC
         if self.debug:
             text = repr(code)
             print(f'exec  len= {len(code):08x} ' + (text if len(text) < 64 else ''))
-        return self.request_all(PacketType.EXEC, code.encode('utf-8')).decode('utf-8')
+        return self.request_all(pty, code.encode('utf-8')).decode('utf-8')
+
+    def clear_globals(self):
+        self.request_all(PacketType.GCLEAR, b'')
 
     def set_status(self, text: str) -> None:
         self.request_all(PacketType.STATUS, text.encode('utf-8'))
